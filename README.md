@@ -1,2 +1,2 @@
 # data_story_2
-Data Story #2
+This data story examines the relationship between endemic, endangered species (i.e., mammals and fish) and environmental protection expenditures across countries through the lens of the 14th and 15th *Sustainable Development Goals* (SDGs), Life Below Water and Life on Land. Some of the questions addressed in this data story include: Do governments adjust their expenditures based on biodiversity loss? Are national budget allocations aligned with the commitments made under the United Nations’s Life Below Water and Life on Land goals? What can **you** do to promote biodiversity conservation? 
