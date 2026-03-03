@@ -1,0 +1,176 @@
+---
+title: "Data Story #1"
+author: "George Barzizza"
+date: "2026-02-10"
+output: html_document
+---
+## **Introduction**
+The UN enacted _17 Sustainable Development Goals_ for their 2030 agenda to further the fight against climate action and bring prosperity to all countries involved. The following visualizations incorporate a handful of these goals (i.e., affordable and clean energy,decent work and economic growth, and climate action), delving into energy alternatives, GHG disparities, and other poignant topics.
+## Renewable Energy Dataset
+```{r }
+library(readr)
+energy <- read_csv('../../data/IRENA data.csv', skip=1)
+```
+## Gapminder Dataset
+```{r}
+library(gapminder)
+library(dplyr)
+data(gapminder)
+```
+```{r include=FALSE}
+gapminder %>% head
+```
+## Carbon Emissions
+```{r}
+library(readr)
+library(dplyr)
+url <- 'https://nyc3.digitaloceanspaces.com/owid-public/data/co2/owid-co2-data.csv'
+carbon <- read_csv(url)
+```
+```{r include=FALSE}
+carbon%>%head
+```
+## Energy Economics
+```{r}
+url <- 'https://raw.githubusercontent.com/ericmkeen/sewanee_esus/master/02_energy_sector/levelized-cost-of-energy.csv'
+econ <- read_csv(url)
+```
+```{r include=FALSE}
+econ%>%head
+```
+
+## Onshore Wind Energy Big 3
+```{r include=FALSE}
+library(ggplot2)
+library(plotly)
+econ3 <- econ %>%
+  filter(source == 'Onshore wind',
+         country %in% c('United States','Germany','China')) %>%
+  arrange(country, year)
+
+big3 <- ggplot(econ3,
+               aes(x = year,
+                   y = cost,
+                   color = country)) +
+  geom_point(alpha = 0.5) +
+  geom_path() +
+  facet_wrap(~country) +
+  labs(
+    x = 'Year',
+    y = 'Levelized Cost Per kWh (In 2024 USD)',
+    title = 'Onshore Wind Energy Big 3',
+    subtitle = 'Comparison of Levelized Cost per kilowatt-hour between China, Germany, and the United States'
+  ) +
+  theme_minimal()
+
+```{r}
+ggplotly(big3)
+```
+According to the [World Wind Energy Association](https://wwindea.org/GlobalStatistics#:~:text=Some%20of%20the%20previously%20very%20dynamic%20markets,were%20in%202024:%20China%20(86%2C7%20GW)%2C%20Brazil), China, Germany, and the United States act as the world's 'Onshore Wind Energy Big 3' as it relates to their respective installed wind energy capacity. The chart above demonstrates each of the Big 3's relative levelized cost per kilowatt-hour (kWh) of onshore wind energy (in 2024 USD) throughout the years. Germany and the United States were the first to implement onshore wind energy at a large scale in the mid-80s. At first, Germany's onshore wind energy was much more affordable (i.e., $0.25 in 1984) than the United States' (i.e., $0.32 in 1984). By the time China joined the game in the late 90s, each of the countries were pretty much neck and neck. Fast-forward to modern day (i.e., 2021), China just barely leads the way in affordability at $0.028 per kilowatt-hour, the United States falls in second at $0.029, and Germany drags behind at $0.051. [Data source found here.](https://ourworldindata.org/grapher/levelized-cost-of-energy)
+
+## Monetary Value of Solar Energy Produced in Japan (2011-2021)
+```{r include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(plotly)
+
+econ_filtered <- econ %>%
+  filter(source == "Solar photovoltaic", country == "Japan")
+
+energy_filtered <- energy %>%
+  filter(Technology == "Solar photovoltaic") %>%
+  select(`Country/area`, Year, Technology, `Electricity statistics`)
+
+econ_joined <- left_join(
+  econ_filtered,
+  energy_filtered,
+  by = c("country" = "Country/area",
+         "year" = "Year",
+         "source" = "Technology"))
+
+econ_joined <- econ_joined %>%
+  filter(year >= 2011 & year <= 2021)
+
+econ_joined$`Electricity statistics` <- as.numeric(gsub("[^0-9.]", "", econ_joined$`Electricity statistics`))
+econ_joined$cost <- as.numeric(econ_joined$cost)
+
+econ_joined$value <- econ_joined$cost * econ_joined$`Electricity statistics` * 1e6
+
+econ_joined <- econ_joined %>% filter(!is.na(value))
+
+japan<-ggplot(econ_joined,
+              aes(x=factor(year),
+                  y=value))+
+  geom_col(fill = "#FDB813")+
+  scale_y_continuous(labels = scales::label_number(scale = 1e-9, suffix = "B"))+
+  labs(x='Year', y='Value of Solar Energy Produced (in USD)', title='Monetary Value of Solar Energy Produced in Japan (2011-2021)')+
+  theme_minimal()
+```
+```{r}
+ggplotly(japan)
+```
+Solar PV is a top economic driver in Japan's energy sector. The graph above demonstrates the yearly monetary value produced from solar energy in Japan within a single decade. In just 10 years, the value exceeds $65 billion. The lowest value produced in a year (i.e., 2012) was $2.07 billion (i.e., $17 for each Japanese citizen). [Data source found here](https://www.irena.org/Data) and [here.](https://ourworldindata.org/grapher/levelized-cost-of-energy)
+
+## Difference Between Ireland and Africa's Methane Levels (1900-2000)
+```{r include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(scales)
+carbon_fi <- carbon %>%
+  select(country, year, methane)
+
+carbon_fi <- carbon_fi %>%
+  filter(between(year, 1900, 2000))%>%
+  filter(country %in% c("Africa", "Ireland"))
+
+rica <- ggplot(carbon_fi,
+               aes(x = year,
+                   y = methane * 1e6 / 1e9,
+                   colour = country)) +
+  geom_path() +
+  labs(x = 'Year',
+    y = 'Methane Levels per Year (in Billion Metric Tons)',
+    title = "Difference Between Ireland and Africa's Methane Levels (1900-2000)") +
+  scale_y_continuous(labels = label_number(suffix = "B")) +
+  theme_minimal()
+```
+```{R}
+ggplotly(rica)
+```
+Methane is one the most dangerous greenhouse gases (GHGs) to be released into the atmosphere because it is extremely effective at trapping heat. Africa is experiencing accelerated global warming compared to other continents according to the [World Meteorological Organization](https://wmo.int/news/media-centre/africa-faces-disproportionate-burden-from-climate-change-and-adaptation-costs). An interesting visualization published by Veronika Samborska on [Our World in Data](https://ourworldindata.org/data-insights/every-country-in-the-world-was-warmer-in-the-2010s-than-in-the-1940s-except-ireland#:~:text=Every%20country%20in%20the%20world,Ireland%20%2D%20Our%20World%20in%20Data) has revealed that the country of Ireland has experienced a declining global warming rate since the 1940s. The visualization above illustrates the difference in yearly methane levels between Africa and Ireland that could be potentially contributing to this vastly different global warming rate. As depicted by the graph, Ireland's methane levels were just above 200,000 metric tons in 2000, whereas Africa's reached approximately 1.25 billion metric tons. [Data source found here.](https://www.globalcarbonproject.org/carbonbudget/)
+## Relationship between GDP per Capita and CO2 per Capita
+```{r include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(gapminder)
+carbon_gdp <- carbon %>%
+  filter(between(year, 1900, 2000))%>%
+  filter(country %in% c("United States", "Afghanistan", "Argentina", "Mexico", "Vietnam", "Spain", "Japan", "United Kingdom", "Syria"))
+carbon_gdp <- carbon_gdp %>%
+  filter(year %in% gapminder$year) %>%
+  left_join(
+    gapminder %>% select(country, year, gdpPercap),
+    by = c("country", "year"))
+
+co2gdp <- ggplot(carbon_gdp,
+               aes(x = gdpPercap,
+                   y = co2_per_capita,
+                   color=country)) +
+  geom_path() +
+  labs(
+    x = 'GDP per Capita (in USD)',
+    y = 'Metric Tons of CO2 per Person (per year)',
+    title = "Relationship between GDP per Capita and CO2 per Capita") +
+  theme_minimal()
+```
+```{R}
+ggplotly(co2gdp)
+```
+I was curious if GDP per capita and CO2 per capita were directly correlated. I selected a handful of different countries with widely distributed GDPs and compared. Although there appear to be a positive correlation trend in some countries (i.e., Spain, Argentine, Japn, and Mexico), other countries seem to stagnate. Data sources include [this](https://www.globalcarbonproject.org/carbonbudget/) and r's stock 'gapminder'.
+
+## Takeaways
+
+- I was glad to put working knowledge into a tangible piece of work that can be shared with others
+- When I ran in to issues, I was happy to see their is a plethora of code meant to troubleshoot post-knit renderings
